@@ -1,9 +1,77 @@
-use actix_web::{web, App, HttpServer, HttpRequest, Responder};
 use std::env::var;
 use std::net::{IpAddr, Ipv4Addr};
 
-fn handler(r: HttpRequest) -> impl Responder {
-    "ok"
+use telegram_types::bot::inline_mode::{
+    InlineQuery, AnswerInlineQuery,
+    InlineQueryResult, InlineQueryResultArticle, ResultId,
+    InputMessageContent, InputTextMessageContent
+};
+use telegram_types::bot::types::{ParseMode};
+
+use actix_web::{web, App, HttpServer, HttpResponse};
+use uuid::Uuid;
+
+fn get_result_id() -> ResultId {
+    // UUID is a 128 bits number and can be represented as 32 hexadecimal digits.
+    let mut uuid = [b'!'; 32];
+
+    // It must be a valid ASCII string.
+    Uuid::new_v4().to_simple().encode_lower(&mut uuid);
+
+    // If there is an error forming strings from UUID bytes, something has gone terribly wrong.
+    // We might as well panic there.
+    ResultId(std::str::from_utf8(&uuid).unwrap().to_owned())
+}
+
+fn form_result() -> InlineQueryResult<'static> {
+    let id = get_result_id();
+
+    let title = "求签".to_string();
+    let message = "大凶".to_string();
+    let description = "求签".to_string();
+
+    InlineQueryResult::Article(
+        InlineQueryResultArticle{
+            id,
+            title: title.into(),
+            input_message_content: InputMessageContent::Text(
+                InputTextMessageContent{
+                    message_text: message.into(),
+                    parse_mode: Some(ParseMode::HTML),
+                    disable_web_page_preview: Some(true)
+                }
+            ),
+            reply_markup: None,
+            url: None,
+            hide_url: None,
+            description: if description.is_empty() {
+                None
+            } else {
+                Some(description.into())
+            },
+            thumb_url: None,
+            thumb_width: None,
+            thumb_height: None
+        }
+    )
+
+}
+
+fn handler(q: web::Json<InlineQuery>) -> HttpResponse {
+
+    let mut results = Vec::new();
+
+    results.push(form_result());
+
+    HttpResponse::Ok().json(AnswerInlineQuery{
+        inline_query_id: q.id.clone(),
+        results: results.into(),
+        cache_time: None,
+        is_personal: None,
+        next_offset: None,
+        switch_pm_text: None,
+        switch_pm_parameter: None
+    })
 }
 
 fn main() -> std::io::Result<()> {
