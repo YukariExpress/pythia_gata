@@ -8,6 +8,8 @@ use telegram_types::bot::inline_mode::{
 use telegram_types::bot::types::{ParseMode, Update, UpdateContent};
 
 use actix_web::{web, App, HttpResponse, HttpServer};
+use actix_web::middleware::Logger;
+use env_logger;
 use uuid::Uuid;
 
 fn get_result_id() -> ResultId {
@@ -67,8 +69,8 @@ fn handler(u: web::Json<Update>) -> HttpResponse {
                 switch_pm_text: None,
                 switch_pm_parameter: None,
             })
-        }
-        _ => HttpResponse::Ok().finish(),
+        },
+        _ => HttpResponse::Ok().finish()
     }
 
 }
@@ -84,7 +86,11 @@ fn main() -> std::io::Result<()> {
         .and_then(|port| port.parse().ok())
         .unwrap_or(8080);
 
-    HttpServer::new(|| App::new().service(web::resource("/").to(handler)))
+    env_logger::init();
+
+    HttpServer::new(|| App::new()
+        .wrap(Logger::default())
+        .service(web::resource("/").to(handler)))
         .bind((host, port))?
         .run()
 }
