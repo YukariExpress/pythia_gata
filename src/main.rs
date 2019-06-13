@@ -12,6 +12,8 @@ use actix_web::middleware::Logger;
 use env_logger;
 use uuid::Uuid;
 
+const LOCALHOST: IpAddr = IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1));
+
 fn get_result_id() -> ResultId {
     // UUID is a 128 bits number and can be represented as 32 hexadecimal digits.
     let mut uuid = [b'!'; 32];
@@ -79,7 +81,7 @@ fn main() -> std::io::Result<()> {
     let host: IpAddr = var("HOST")
         .ok()
         .and_then(|host| host.parse().ok())
-        .unwrap_or_else(|| IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)));
+        .unwrap_or(LOCALHOST);
 
     let port: u16 = var("PORT")
         .ok()
