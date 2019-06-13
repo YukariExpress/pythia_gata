@@ -2,13 +2,12 @@ use std::env::var;
 use std::net::{IpAddr, Ipv4Addr};
 
 use telegram_types::bot::inline_mode::{
-    InlineQuery, AnswerInlineQuery,
-    InlineQueryResult, InlineQueryResultArticle, ResultId,
-    InputMessageContent, InputTextMessageContent
+    AnswerInlineQuery, InlineQueryResult, InlineQueryResultArticle, InputMessageContent,
+    InputTextMessageContent, ResultId,
 };
-use telegram_types::bot::types::{ParseMode};
+use telegram_types::bot::types::{ParseMode, Update, UpdateContent};
 
-use actix_web::{web, App, HttpServer, HttpResponse};
+use actix_web::{web, App, HttpResponse, HttpServer};
 use uuid::Uuid;
 
 fn get_result_id() -> ResultId {
@@ -30,61 +29,62 @@ fn form_result() -> InlineQueryResult<'static> {
     let message = "大凶".to_string();
     let description = "求签".to_string();
 
-    InlineQueryResult::Article(
-        InlineQueryResultArticle{
-            id,
-            title: title.into(),
-            input_message_content: InputMessageContent::Text(
-                InputTextMessageContent{
-                    message_text: message.into(),
-                    parse_mode: Some(ParseMode::HTML),
-                    disable_web_page_preview: Some(true)
-                }
-            ),
-            reply_markup: None,
-            url: None,
-            hide_url: None,
-            description: if description.is_empty() {
-                None
-            } else {
-                Some(description.into())
-            },
-            thumb_url: None,
-            thumb_width: None,
-            thumb_height: None
-        }
-    )
-
-}
-
-fn handler(q: web::Json<InlineQuery>) -> HttpResponse {
-
-    let mut results = Vec::new();
-
-    results.push(form_result());
-
-    HttpResponse::Ok().json(AnswerInlineQuery{
-        inline_query_id: q.id.clone(),
-        results: results.into(),
-        cache_time: None,
-        is_personal: None,
-        next_offset: None,
-        switch_pm_text: None,
-        switch_pm_parameter: None
+    InlineQueryResult::Article(InlineQueryResultArticle {
+        id,
+        title: title.into(),
+        input_message_content: InputMessageContent::Text(InputTextMessageContent {
+            message_text: message.into(),
+            parse_mode: Some(ParseMode::HTML),
+            disable_web_page_preview: Some(true),
+        }),
+        reply_markup: None,
+        url: None,
+        hide_url: None,
+        description: if description.is_empty() {
+            None
+        } else {
+            Some(description.into())
+        },
+        thumb_url: None,
+        thumb_width: None,
+        thumb_height: None,
     })
 }
 
-fn main() -> std::io::Result<()> {
+fn handler(u: web::Json<Update>) -> HttpResponse {
 
-    let host: IpAddr = var("HOST").ok().and_then(|host| host.parse().ok())
+    match &u.content {
+        UpdateContent::InlineQuery(m) => {
+            let mut results = Vec::new();
+            results.push(form_result());
+
+            HttpResponse::Ok().json(AnswerInlineQuery {
+                inline_query_id: m.id.clone(),
+                results: results.into(),
+                cache_time: None,
+                is_personal: None,
+                next_offset: None,
+                switch_pm_text: None,
+                switch_pm_parameter: None,
+            })
+        }
+        _ => HttpResponse::Ok().finish(),
+    }
+
+}
+
+fn main() -> std::io::Result<()> {
+    let host: IpAddr = var("HOST")
+        .ok()
+        .and_then(|host| host.parse().ok())
         .unwrap_or_else(|| IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)));
 
-    let port: u16 = var("PORT").ok().and_then(|port| port.parse().ok())
+    let port: u16 = var("PORT")
+        .ok()
+        .and_then(|port| port.parse().ok())
         .unwrap_or(8080);
 
-    HttpServer::new(
-        || App::new().service(
-              web::resource("/").to(handler)))
+    HttpServer::new(|| App::new().service(web::resource("/").to(handler)))
         .bind((host, port))?
         .run()
 }
