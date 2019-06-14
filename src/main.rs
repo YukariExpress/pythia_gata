@@ -9,11 +9,9 @@ use telegram_types::bot::types::{ParseMode, Update, UpdateContent};
 
 use actix_web::middleware::Logger;
 use actix_web::{web, App, HttpResponse, HttpServer};
-use http_req::{
-    request::{Method, Request},
-    uri::Uri,
-};
-use serde_json::{to_vec, to_string_pretty};
+
+use serde_json::json;
+use ureq::post;
 
 use uuid::Uuid;
 
@@ -69,10 +67,8 @@ struct Bot {
 }
 
 impl Bot {
-    fn build_url(self, method: &str) -> Uri {
+    fn build_url(self, method: &str) -> String {
         format!("{}/bot{}/{}", TELEGRAM_API, self.token, method)
-            .parse()
-            .unwrap()
     }
 }
 
@@ -114,18 +110,10 @@ fn main() -> std::io::Result<()> {
                             switch_pm_parameter: None,
                         };
 
-                        debug!("Payload: {:#?}", to_string_pretty(&answer).unwrap());
-                        let body = to_vec(&answer).unwrap();
+                        let resp = post(&url)
+                        .send_json(json!(answer));
 
-                        let mut writer = Vec::new();
-
-                        let response = Request::new(&url)
-                            .method(Method::POST)
-                            .header("Content-Type", "application/json")
-                            .body(body.as_slice())
-                            .send(&mut writer);
-
-                        debug!("API call response: {:#?}", response);
+                        debug!("API call response: {:#?}", resp);
                     };
                     HttpResponse::Ok().finish()
                 }),
