@@ -9,8 +9,9 @@ use telegram_types::bot::types::{ParseMode, Update, UpdateContent};
 
 use actix_web::middleware::Logger;
 use actix_web::{web, App, HttpResponse, HttpServer};
+use actix_web::client::Client;
 
-use reqwest::{Client, Url};
+use futures::Future;
 
 use uuid::Uuid;
 
@@ -66,10 +67,8 @@ struct Bot {
 }
 
 impl Bot {
-    fn build_url(self, method: &str) -> Url {
-        let base = format!("{}/bot{}/", TELEGRAM_API, self.token);
-
-        Url::parse(&base).unwrap().join(method).unwrap()
+    fn build_url(self, method: &str) -> String {
+        format!("{}/bot{}/{}", TELEGRAM_API, self.token, method)
     }
 }
 
@@ -111,7 +110,7 @@ fn main() -> std::io::Result<()> {
                             switch_pm_parameter: None,
                         };
 
-                        let res = client.post(url).json(&answer).send();
+                        let res = client.post(url).send_json(&answer).wait();
                         match res {
                             Ok(v) => info!("API call: {:?}", v),
                             Err(e) => warn!("API call error: {}", e)
