@@ -14,6 +14,8 @@ use reqwest::{Client, Url};
 
 use uuid::Uuid;
 
+use log::{info, warn};
+
 const LOCALHOST: IpAddr = IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1));
 static TELEGRAM_API: &str = "https://api.telegram.org";
 
@@ -109,7 +111,11 @@ fn main() -> std::io::Result<()> {
                             switch_pm_parameter: None,
                         };
 
-                        let _res = client.post(url).json(&answer).send();
+                        let res = client.post(url).json(&answer).send();
+                        match res {
+                            Ok(v) => info!("API call: {:?}", v),
+                            Err(e) => warn!("API call error: {}", e)
+                        };
                     };
                     HttpResponse::Ok().finish()
                 }),
