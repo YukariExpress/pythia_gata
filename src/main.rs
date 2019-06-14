@@ -7,12 +7,15 @@ use telegram_types::bot::inline_mode::{
 };
 use telegram_types::bot::types::{ParseMode, Update, UpdateContent};
 
-use actix_web::{web, App, HttpResponse, HttpServer};
 use actix_web::middleware::Logger;
-use env_logger;
+use actix_web::{web, App, HttpResponse, HttpServer};
+
+use reqwest::{Client, Url};
+
 use uuid::Uuid;
 
 const LOCALHOST: IpAddr = IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1));
+static TELEGRAM_API: &str = "https://api.telegram.org";
 
 fn get_result_id() -> ResultId {
     // UUID is a 128 bits number and can be represented as 32 hexadecimal digits.
@@ -55,26 +58,17 @@ fn form_result() -> InlineQueryResult<'static> {
     })
 }
 
-fn handler(u: web::Json<Update>) -> HttpResponse {
+#[derive(Clone)]
+struct Bot {
+    token: String,
+}
 
-    match &u.content {
-        UpdateContent::InlineQuery(m) => {
-            let mut results = Vec::new();
-            results.push(form_result());
+impl Bot {
+    fn build_url(self, method: &str) -> Url {
+        let base = format!("{}/bot{}/", TELEGRAM_API, self.token);
 
-            HttpResponse::Ok().json(AnswerInlineQuery {
-                inline_query_id: m.id.clone(),
-                results: results.into(),
-                cache_time: None,
-                is_personal: None,
-                next_offset: None,
-                switch_pm_text: None,
-                switch_pm_parameter: None,
-            })
-        },
-        _ => HttpResponse::Ok().finish()
+        Url::parse(&base).unwrap().join(method).unwrap()
     }
-
 }
 
 fn main() -> std::io::Result<()> {
@@ -90,9 +84,37 @@ fn main() -> std::io::Result<()> {
 
     env_logger::init();
 
-    HttpServer::new(|| App::new()
-        .wrap(Logger::default())
-        .service(web::resource("/").to(handler)))
-        .bind((host, port))?
-        .run()
+    HttpServer::new(move || {
+        App::new()
+            .wrap(Logger::default())
+            .service(
+                web::resource("/").to(|u: web::Json<Update>| -> HttpResponse {
+                    // Panic if no Telegram Bot token is supplied.
+                    let token = var("TOKEN").unwrap();
+                    let client = Client::new();
+                    let bot = Bot { token };
+                    let url = bot.build_url("answerInlineQuery");
+
+                    if let UpdateContent::InlineQuery(m) = &u.content {
+                        let mut results = Vec::new();
+                        results.push(form_result());
+
+                        let answer = AnswerInlineQuery {
+                            inline_query_id: m.id.clone(),
+                            results: results.into(),
+                            cache_time: None,
+                            is_personal: None,
+                            next_offset: None,
+                            switch_pm_text: None,
+                            switch_pm_parameter: None,
+                        };
+
+                        let _res = client.post(url).json(&answer).send();
+                    };
+                    HttpResponse::Ok().finish()
+                }),
+            )
+    })
+    .bind((host, port))?
+    .run()
 }
