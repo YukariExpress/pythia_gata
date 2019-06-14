@@ -7,9 +7,9 @@ license = "GPL-3.0-or-later"
 homepage = "https://github.com/YukariExpress/pythia_gata"
 
 [dependencies]
-actix-web = "1.0"
+actix-web = { version = "1.0", features = ["ssl"] }
 telegram_types = "0.5.0"
-serde = { version = "1.0", features = ["derive"]}
+serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 uuid = { version = "0.7.4", features = ["serde", "v4"] }
 env_logger = "0.6.1"
