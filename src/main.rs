@@ -9,13 +9,15 @@ use telegram_types::bot::types::{ParseMode, Update, UpdateContent};
 
 use actix_web::middleware::Logger;
 use actix_web::{web, App, HttpResponse, HttpServer};
-use actix_web::client::Client;
-
-use futures::Future;
+use http_req::{
+    request::{Method, Request},
+    uri::Uri,
+};
+use serde_json::{to_vec, to_string_pretty};
 
 use uuid::Uuid;
 
-use log::{info, warn};
+use log::debug;
 
 const LOCALHOST: IpAddr = IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1));
 static TELEGRAM_API: &str = "https://api.telegram.org";
@@ -67,8 +69,10 @@ struct Bot {
 }
 
 impl Bot {
-    fn build_url(self, method: &str) -> String {
+    fn build_url(self, method: &str) -> Uri {
         format!("{}/bot{}/{}", TELEGRAM_API, self.token, method)
+            .parse()
+            .unwrap()
     }
 }
 
@@ -82,7 +86,6 @@ fn main() -> std::io::Result<()> {
         .ok()
         .and_then(|port| port.parse().ok())
         .unwrap_or(8080);
-
     env_logger::init();
 
     HttpServer::new(move || {
@@ -92,9 +95,10 @@ fn main() -> std::io::Result<()> {
                 web::resource("/").to(|u: web::Json<Update>| -> HttpResponse {
                     // Panic if no Telegram Bot token is supplied.
                     let token = var("TOKEN").unwrap();
-                    let client = Client::new();
                     let bot = Bot { token };
                     let url = bot.build_url("answerInlineQuery");
+
+                    debug!("Request URL: {}", url);
 
                     if let UpdateContent::InlineQuery(m) = &u.content {
                         let mut results = Vec::new();
@@ -110,11 +114,18 @@ fn main() -> std::io::Result<()> {
                             switch_pm_parameter: None,
                         };
 
-                        let res = client.post(url).send_json(&answer).wait();
-                        match res {
-                            Ok(v) => info!("API call: {:?}", v),
-                            Err(e) => warn!("API call error: {}", e)
-                        };
+                        debug!("Payload: {:#?}", to_string_pretty(&answer).unwrap());
+                        let body = to_vec(&answer).unwrap();
+
+                        let mut writer = Vec::new();
+
+                        let response = Request::new(&url)
+                            .method(Method::POST)
+                            .header("Content-Type", "application/json")
+                            .body(body.as_slice())
+                            .send(&mut writer);
+
+                        debug!("API call response: {:#?}", response);
                     };
                     HttpResponse::Ok().finish()
                 }),
