@@ -2,18 +2,15 @@
 name = "pythia_gata"
 version = "0.1.0"
 authors = ["Yishen Miao <mys721tx@gmail.com>"]
-edition = "2018"
+edition = "2024"
 license = "GPL-3.0-or-later"
 homepage = "https://github.com/YukariExpress/pythia_gata"
 
 [dependencies]
-actix-web = { version = "1.0", features = ["ssl"] }
-telegram_types = "0.5.0"
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-uuid = { version = "0.8.1", features = ["serde", "v4"] }
-env_logger = "0.7.1"
-reqwest = "0.9.24"
-log = "0.4.8"
-futures="0.3.4"
-ureq = { version = "*", features = ["json"] }
+teloxide = { version = "0.15", features = ["full"] }
+rand = "0.9"
+sha2 = "0.10"
+tokio = { version = "1", features = ["full"] }
+pretty_env_logger = "0.5.0"
+log = "0.4.27"
+axum = "0.8.4"
