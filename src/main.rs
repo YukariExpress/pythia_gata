@@ -1,5 +1,3 @@
-use log;
-use pretty_env_logger;
 use rand::rngs::StdRng;
 use rand::{RngCore, SeedableRng};
 use sha2::{Digest, Sha256};
@@ -19,8 +17,8 @@ fn new_rng(user_id: i64, query: &str) -> StdRng {
         .as_secs();
     let t30 = now - (now % (30 * 60));
     let mut hasher = Sha256::new();
-    hasher.update(&user_id.to_le_bytes());
-    hasher.update(&t30.to_le_bytes());
+    hasher.update(user_id.to_le_bytes());
+    hasher.update(t30.to_le_bytes());
     hasher.update(query.as_bytes());
     let hash = hasher.finalize();
     let mut seed = [0u8; 32];
@@ -34,11 +32,11 @@ fn pia(query: &str, rng: &mut StdRng) -> String {
     } else {
         "Pia!<(=ｏ ‵-′)ノ☆ "
     };
-    format!("{}{}", prefix, query)
+    format!("{prefix}{query}")
 }
 
 fn divine(query: &str, rng: &mut StdRng) -> String {
-    let mut result = format!("所求事项: {}\n结果: ", query);
+    let mut result = format!("所求事项: {query}\n结果: ");
     let o = rng.next_u64() % 16;
     let omen = if o >= 9 {
         Some("吉")
@@ -68,6 +66,32 @@ fn divine(query: &str, rng: &mut StdRng) -> String {
         result.push_str("尚可");
     }
     result
+}
+
+fn build_inline_query_results(
+    user: &teloxide::types::User,
+    query_text: &str,
+    mut rng: StdRng,
+) -> Vec<InlineQueryResult> {
+    let locale = user.language_code.as_deref().unwrap_or("zh");
+    let (divine_title, pia_title) = match locale {
+        "zh" => ("求签", "Pia"),
+        _ => ("Divination", "Pia"),
+    };
+    let divine_result = InlineQueryResultArticle::new(
+        "divine",
+        divine_title,
+        InputMessageContent::Text(InputMessageContentText::new(divine(query_text, &mut rng))),
+    );
+    let pia_result = InlineQueryResultArticle::new(
+        "pia",
+        pia_title,
+        InputMessageContent::Text(InputMessageContentText::new(pia(query_text, &mut rng))),
+    );
+    vec![
+        InlineQueryResult::Article(divine_result),
+        InlineQueryResult::Article(pia_result),
+    ]
 }
 
 #[tokio::main]
@@ -101,30 +125,9 @@ async fn main() {
 async fn handle_inline_query(bot: &Bot, query: &InlineQuery) -> ResponseResult<()> {
     let user_id = query.from.id.0 as i64;
     let query_text = &query.query;
-    let locale = query.from.language_code.as_deref().unwrap_or("zh");
-    let mut rng = new_rng(user_id, query_text);
-    let (divine_title, pia_title) = match locale {
-        "zh" => ("求签", "Pia"),
-        _ => ("Divination", "Pia"),
-    };
-    let divine_result = InlineQueryResultArticle::new(
-        "divine",
-        divine_title,
-        InputMessageContent::Text(InputMessageContentText::new(divine(query_text, &mut rng))),
-    );
-    let pia_result = InlineQueryResultArticle::new(
-        "pia",
-        pia_title,
-        InputMessageContent::Text(InputMessageContentText::new(pia(query_text, &mut rng))),
-    );
-    bot.answer_inline_query(
-        &query.id,
-        vec![
-            InlineQueryResult::Article(divine_result),
-            InlineQueryResult::Article(pia_result),
-        ],
-    )
-    .await?;
+    let rng = new_rng(user_id, query_text);
+    let results = build_inline_query_results(&query.from, query_text, rng);
+    bot.answer_inline_query(query.id.clone(), results).await?;
     Ok(())
 }
 
