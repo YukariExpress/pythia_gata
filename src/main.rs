@@ -127,3 +127,6 @@ async fn handle_inline_query(bot: &Bot, query: &InlineQuery) -> ResponseResult<(
     .await?;
     Ok(())
 }
+
+#[cfg(test)]
+mod main_tests;
