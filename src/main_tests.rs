@@ -30,4 +30,28 @@ mod tests {
         assert!(result.contains("所求事项: question"));
         assert!(result.contains("结果: "));
     }
+
+    #[test]
+    fn test_build_inline_query_results() {
+        use teloxide::types::{User, UserId};
+        let user = User {
+            id: UserId(42),
+            is_bot: false,
+            first_name: "Test".to_string(),
+            last_name: None,
+            username: None,
+            language_code: Some("zh".to_string()),
+            is_premium: false,
+            added_to_attachment_menu: false,
+        };
+        let rng = new_rng(42, "问题");
+        let results = build_inline_query_results(&user, "问题", rng);
+        assert_eq!(results.len(), 2);
+        // Check titles and content
+        if let teloxide::types::InlineQueryResult::Article(a) = &results[0] {
+            assert!(a.title == "求签" || a.title == "Divination");
+        } else {
+            panic!("First result is not an Article");
+        }
+    }
 }

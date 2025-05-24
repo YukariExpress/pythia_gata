@@ -70,6 +70,32 @@ fn divine(query: &str, rng: &mut StdRng) -> String {
     result
 }
 
+fn build_inline_query_results(
+    user: &teloxide::types::User,
+    query_text: &str,
+    mut rng: StdRng,
+) -> Vec<InlineQueryResult> {
+    let locale = user.language_code.as_deref().unwrap_or("zh");
+    let (divine_title, pia_title) = match locale {
+        "zh" => ("求签", "Pia"),
+        _ => ("Divination", "Pia"),
+    };
+    let divine_result = InlineQueryResultArticle::new(
+        "divine",
+        divine_title,
+        InputMessageContent::Text(InputMessageContentText::new(divine(query_text, &mut rng))),
+    );
+    let pia_result = InlineQueryResultArticle::new(
+        "pia",
+        pia_title,
+        InputMessageContent::Text(InputMessageContentText::new(pia(query_text, &mut rng))),
+    );
+    vec![
+        InlineQueryResult::Article(divine_result),
+        InlineQueryResult::Article(pia_result),
+    ]
+}
+
 #[tokio::main]
 async fn main() {
     pretty_env_logger::init();
@@ -101,30 +127,9 @@ async fn main() {
 async fn handle_inline_query(bot: &Bot, query: &InlineQuery) -> ResponseResult<()> {
     let user_id = query.from.id.0 as i64;
     let query_text = &query.query;
-    let locale = query.from.language_code.as_deref().unwrap_or("zh");
-    let mut rng = new_rng(user_id, query_text);
-    let (divine_title, pia_title) = match locale {
-        "zh" => ("求签", "Pia"),
-        _ => ("Divination", "Pia"),
-    };
-    let divine_result = InlineQueryResultArticle::new(
-        "divine",
-        divine_title,
-        InputMessageContent::Text(InputMessageContentText::new(divine(query_text, &mut rng))),
-    );
-    let pia_result = InlineQueryResultArticle::new(
-        "pia",
-        pia_title,
-        InputMessageContent::Text(InputMessageContentText::new(pia(query_text, &mut rng))),
-    );
-    bot.answer_inline_query(
-        &query.id,
-        vec![
-            InlineQueryResult::Article(divine_result),
-            InlineQueryResult::Article(pia_result),
-        ],
-    )
-    .await?;
+    let rng = new_rng(user_id, query_text);
+    let results = build_inline_query_results(&query.from, query_text, rng);
+    bot.answer_inline_query(&query.id, results).await?;
     Ok(())
 }
 
