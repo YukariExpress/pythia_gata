@@ -2,12 +2,16 @@ name: CI
 
 on:
   push:
+    tags: ["v*"]
     branches: [main dev]
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+
 jobs:
-  Formatting:
+  formatting:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -22,7 +26,7 @@ jobs:
       - name: Check format
         run: cargo fmt -- --check
 
-  Linting:
+  linting:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -39,8 +43,8 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
-  Testing:
-    needs: Formatting
+  testing:
+    needs: formatting
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
