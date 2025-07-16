@@ -7,7 +7,7 @@ license = "GPL-3.0-or-later"
 homepage = "https://github.com/YukariExpress/pythia_gata"
 
 [dependencies]
-teloxide = { version = "0.16", features = ["full"] }
+teloxide = { version = "0.17", features = ["full"] }
 rand = "0.9"
 sha2 = "0.10"
 tokio = { version = "1", features = ["full"] }
