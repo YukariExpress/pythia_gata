@@ -7,9 +7,22 @@ permissions:
   pull-requests: write
 
 jobs:
+  wait-for-checks:
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.user.login == 'dependabot[bot]' && github.repository == 'YukariExpress/pythia_gata'
+    steps:
+      - name: Wait for CI to complete
+        uses: lewagon/wait-on-check-action@v1.4.0
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          running-workflow-name: 'wait-for-checks'
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          wait-interval: 10
+
   dependabot:
     runs-on: ubuntu-latest
     if: github.event.pull_request.user.login == 'dependabot[bot]' && github.repository == 'YukariExpress/pythia_gata'
+    needs: wait-for-checks
     steps:
       - name: Dependabot metadata
         id: metadata
