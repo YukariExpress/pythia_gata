@@ -15,8 +15,9 @@ jobs:
         uses: lewagon/wait-on-check-action@v1.4.0
         with:
           ref: ${{ github.event.pull_request.head.sha }}
-          running-workflow-name: 'wait-for-checks'
+          running-workflow-name: "wait-for-checks"
           repo-token: ${{ secrets.GITHUB_TOKEN }}
+          allowed-conclusions: success,skipped,cancelled,neutral
           wait-interval: 10
 
   dependabot:
