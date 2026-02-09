@@ -8,7 +8,7 @@ homepage = "https://github.com/YukariExpress/pythia_gata"
 
 [dependencies]
 teloxide = { version = "0.17", features = ["full"] }
-rand = "0.9"
+rand = "0.10"
 sha2 = "0.10"
 tokio = { version = "1", features = ["full"] }
 pretty_env_logger = "0.5"
