@@ -1,5 +1,6 @@
-use rand::rngs::StdRng;
-use rand::{RngCore, SeedableRng};
+use chacha20::ChaCha12Rng;
+use rand_core::{Rng, SeedableRng};
+
 use sha2::{Digest, Sha256};
 use std::time::{SystemTime, UNIX_EPOCH};
 use teloxide::types::UpdateKind;
@@ -9,7 +10,7 @@ use teloxide::types::{
 };
 use teloxide::{prelude::*, update_listeners::webhooks};
 
-fn new_rng(user_id: i64, query: &str) -> StdRng {
+fn new_rng(user_id: i64, query: &str) -> impl Rng {
     // Truncate time to 30 minutes
     let now = SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -23,10 +24,10 @@ fn new_rng(user_id: i64, query: &str) -> StdRng {
     let hash = hasher.finalize();
     let mut seed = [0u8; 32];
     seed.copy_from_slice(&hash);
-    StdRng::from_seed(seed)
+    ChaCha12Rng::from_seed(seed)
 }
 
-fn pia(query: &str, rng: &mut StdRng) -> String {
+fn pia(query: &str, rng: &mut impl Rng) -> String {
     let prefix = if rng.next_u64() % 8 == 0 {
         "Pia!▼(ｏ ‵-′)ノ★ "
     } else {
@@ -35,7 +36,7 @@ fn pia(query: &str, rng: &mut StdRng) -> String {
     format!("{prefix}{query}")
 }
 
-fn divine(query: &str, rng: &mut StdRng) -> String {
+fn divine(query: &str, rng: &mut impl Rng) -> String {
     let mut result = format!("所求事项: {query}\n结果: ");
     let o = rng.next_u64() % 16;
     let omen = if o >= 9 {
@@ -71,7 +72,7 @@ fn divine(query: &str, rng: &mut StdRng) -> String {
 fn build_inline_query_results(
     user: &teloxide::types::User,
     query_text: &str,
-    mut rng: StdRng,
+    mut rng: impl Rng,
 ) -> Vec<InlineQueryResult> {
     let locale = user.language_code.as_deref().unwrap_or("zh");
     let (divine_title, pia_title) = match locale {

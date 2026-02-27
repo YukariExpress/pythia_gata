@@ -9,10 +9,10 @@ mod tests {
 
     #[test]
     fn test_new_rng_determinism() {
-        let rng1 = new_rng(12345, "test");
-        let rng2 = new_rng(12345, "test");
+        let mut rng1 = new_rng(12345, "test");
+        let mut rng2 = new_rng(12345, "test");
         // The first value from both RNGs should be the same
-        assert_eq!(rng1.clone().next_u64(), rng2.clone().next_u64());
+        assert_eq!(rng1.next_u64(), rng2.next_u64());
     }
 
     #[test]
