@@ -212,7 +212,7 @@ dependencies = [
  "cfg-if",
  "cipher",
  "cpufeatures 0.3.0",
- "rand_core 0.10.0",
+ "rand_core 0.10.1",
 ]
 
 [[package]]
@@ -1590,7 +1590,7 @@ dependencies = [
  "chacha20",
  "log",
  "pretty_env_logger",
- "rand_core 0.10.0",
+ "rand_core 0.10.1",
  "sha2 0.11.0",
  "teloxide",
  "tokio",
@@ -1727,9 +1727,9 @@ dependencies = [
 
 [[package]]
 name = "rand_core"
-version = "0.10.0"
+version = "0.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0c8d0fd677905edcbeedbf2edb6494d676f0e98d54d5cf9bda0b061cb8fb8aba"
+checksum = "63b8176103e19a2643978565ca18b50549f6101881c443590420e4dc998a3c69"
 
 [[package]]
 name = "rc-box"
